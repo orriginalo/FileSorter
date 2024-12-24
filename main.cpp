@@ -98,7 +98,7 @@ int main() {
   else {
     cout << "There are no files to sort." << endl;
   }
-  cout << "Press Enter to exit . . ." << std::endl;
+  cout << "Press Enter to exit . . .";
   cin.get(); // Ждет нажатия клавиши Enter
 }
 
