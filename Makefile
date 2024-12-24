@@ -1,10 +1,13 @@
 app: main.cpp
-	g++ ./main.cpp -o ./main
+	g++ ./main.cpp -O2 -o ./main
+	strip ./main.exe
 	./main.exe
 
 
+.PHONY: clean format
 
-.PHONY: clean
-
+format:
+	clang-format -i ./*.cpp
+	
 clean:
 	del ./main.exe
