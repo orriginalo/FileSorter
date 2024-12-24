@@ -38,9 +38,9 @@ int main() {
 
   loadConfig();
 
-  for (const auto& pair : fromPaths) {
-    cout << pair.first << " : " << pair.second << endl;
-  }
+  // for (const auto& pair : fromPaths) {
+  //   cout << pair.first << " : " << pair.second << endl;
+  // }
 
   cout << "Select from:" << endl;
   int counter = 1;
@@ -98,7 +98,8 @@ int main() {
   else {
     cout << "There are no files to sort." << endl;
   }
-    system("pause");
+  cout << "Press Enter to exit . . ." << std::endl;
+  cin.get(); // Ждет нажатия клавиши Enter
 }
 
 
@@ -203,11 +204,3 @@ void loadConfig() {
   }
   configFile.close();
 }
-
-// """
-// Выберите тип:
-// 1 - С рабочего стола и загрузок
-// 2 - С рабочего стола
-// 3 - С загрузок
-// Ввод: 
-// """
