@@ -1,0 +1,51 @@
+# .clang-format configuration file
+Language: Cpp
+
+# Include grouping
+IncludeBlocks: Preserve
+IncludeCategories:
+  - Regex: "^<.*"
+    Priority: 1
+  - Regex: '^"'
+    Priority: 2
+SortIncludes: false
+
+# Namespace and 'using' formatting
+NamespaceIndentation: None
+IndentWidth: 2
+TabWidth: 2
+UseTab: Never
+
+# Pointer/Reference alignment
+PointerAlignment: Right
+AlignConsecutiveAssignments: true
+
+# Column Limit
+ColumnLimit: 120
+
+# Function and control statement formatting
+AllowShortFunctionsOnASingleLine: All
+BraceWrapping:
+  AfterClass: false
+  AfterControlStatement: true
+  AfterFunction: true
+  AfterNamespace: false
+  BeforeElse: true
+  BeforeCatch: true
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+
+# Indentation and wrapping
+IndentCaseLabels: true
+IndentPPDirectives: AfterHash
+BreakBeforeBraces: Attach
+
+# Line breaks and spacing
+AlwaysBreakAfterReturnType: None
+AlignAfterOpenBracket: Align
+SpacesInParentheses: false
+SpaceBeforeParens: ControlStatements
+SpaceAfterCStyleCast: true
+
+# Trailing commas
+Cpp11BracedListStyle: true
