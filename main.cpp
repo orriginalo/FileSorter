@@ -113,9 +113,7 @@ fs::path getPathByNumber(int& num) {
       counter++;
     }
   }
-  else {
-    return "";
-  }
+  return "";
 }
 
 void createDirectoryIfNotExists(const fs::path& path) {
