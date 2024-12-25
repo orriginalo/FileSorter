@@ -26,13 +26,14 @@ vector<string> bookExtentions    = {".pdf",  ".epub", ".mobi", ".cbz", ".cbr", "
 vector<string> videoExtentions   = {".mp4", ".mkv", ".avi", ".flv", ".webm", ".wmv",
                                     ".mov", ".m4v", ".3gp", ".3g2", ".swf"};
 
+vector<fs::path> toPaths;
 map<fs::path, string> fromPaths;
 
 int totalFilesSorted = 0;
 fs::path path        = "";
 bool exitFromLoop    = false;
 
-void sortFiles(const fs::path &);
+void sortFiles(const fs::path &, bool);
 void createDirectoryIfNotExists(const fs::path &);
 void loadConfig();
 fs::path getPathByNumber(int &);
@@ -75,15 +76,25 @@ int main() {
       }
     }
   } while (!exitFromLoop);
-  // getline(cin, variants);
 
+  for (fs::path &path : toPaths) {
+    createDirectoryIfNotExists(path);
+  }
   createDirectoryIfNotExists(picturesPath);
   createDirectoryIfNotExists(soundsPath);
+
+  string answer;
+  do {
+    cout << "Do you want to sort files recursively? [y/n]: ";
+    cin >> answer;
+  } while ((answer != "y") && (answer != "n"));
+
+  bool isRecursive = answer == "y";
 
   for (int &var : variantsArr) {
     fs::path currentPath = getPathByNumber(var);
     if (currentPath != "") {
-      sortFiles(currentPath);
+      sortFiles(currentPath, isRecursive);
     }
   }
 
@@ -111,7 +122,7 @@ fs::path getPathByNumber(int &num) {
 }
 
 void createDirectoryIfNotExists(const fs::path &path) {
-  if (!fs::exists(path)) {
+  if (!fs::exists(path) && path != "") {
     try {
       fs::create_directory(path);
       cout << "Folder created: " << path << endl;
@@ -121,24 +132,69 @@ void createDirectoryIfNotExists(const fs::path &path) {
   }
 }
 
-void sortFiles(const fs::path &src) {
+void sortFiles(const fs::path &src, bool isRecursive = false) {
   try {
-    for (const auto &entry : fs::directory_iterator(src)) {
-      try {
-        auto extension  = entry.path().extension();
-        auto picturesIt = find(pictureExtentions.begin(), pictureExtentions.end(), extension);
-        if (picturesIt != pictureExtentions.end()) {
-          fs::rename(entry, picturesPath / entry.path().filename());
-          totalFilesSorted++;
-        }
+    if(isRecursive) {
+      for (const auto &entry : fs::recursive_directory_iterator(src)) {
+        try {
+          auto extension  = entry.path().extension();
+          auto picturesIt = find(pictureExtentions.begin(), pictureExtentions.end(), extension);
+          if (picturesIt != pictureExtentions.end()) {
+            fs::rename(entry, picturesPath / entry.path().filename());
+            totalFilesSorted++;
+          }
 
-        auto soundsIt = find(soundExtentions.begin(), soundExtentions.end(), extension);
-        if (soundsIt != soundExtentions.end()) {
-          fs::rename(entry, soundsPath / entry.path().filename());
-          totalFilesSorted++;
+          auto soundsIt = find(soundExtentions.begin(), soundExtentions.end(), extension);
+          if (soundsIt != soundExtentions.end()) {
+            fs::rename(entry, soundsPath / entry.path().filename());
+            totalFilesSorted++;
+          }
+
+          auto booksIt = find(bookExtentions.begin(), bookExtentions.end(), extension);
+          if (booksIt != bookExtentions.end()) {
+            fs::rename(entry, bookPath / entry.path().filename());
+            totalFilesSorted++;
+          }
+
+          auto videosIt = find(videoExtentions.begin(), videoExtentions.end(), extension);
+          if (videosIt != videoExtentions.end()) {
+            fs::rename(entry, videoPath / entry.path().filename());
+            totalFilesSorted++;
+          }
+        } catch (fs::filesystem_error &e) {
+          cout << "Error while transferring file " << entry.path().filename() << ": " << e.what() << endl;
         }
-      } catch (fs::filesystem_error &e) {
-        cout << "Error while transferring file " << entry.path().filename() << ": " << e.what() << endl;
+      }
+    } else {
+      for (const auto &entry : fs::directory_iterator(src)) {
+        try {
+          auto extension  = entry.path().extension();
+          auto picturesIt = find(pictureExtentions.begin(), pictureExtentions.end(), extension);
+          if (picturesIt != pictureExtentions.end()) {
+            fs::rename(entry, picturesPath / entry.path().filename());
+            totalFilesSorted++;
+          }
+
+          auto soundsIt = find(soundExtentions.begin(), soundExtentions.end(), extension);
+          if (soundsIt != soundExtentions.end()) {
+            fs::rename(entry, soundsPath / entry.path().filename());
+            totalFilesSorted++;
+          }
+
+          auto booksIt = find(bookExtentions.begin(), bookExtentions.end(), extension);
+          if (booksIt != bookExtentions.end()) {
+            fs::rename(entry, bookPath / entry.path().filename());
+            totalFilesSorted++;
+          }
+
+          auto videosIt = find(videoExtentions.begin(), videoExtentions.end(), extension);
+          if (videosIt != videoExtentions.end()) {
+            fs::rename(entry, videoPath / entry.path().filename());
+            totalFilesSorted++;
+          }
+        } catch (fs::filesystem_error &e) {
+          cout << "Error while transferring file " << entry.path().filename() << ": " << e.what() << endl;
+        }
       }
     }
   } catch (fs::filesystem_error &e) {
@@ -174,6 +230,8 @@ void loadConfig() {
       fs::path path   = static_cast<fs::path>(strPath);
       string alias    = lines[i].substr(separator + 3);
       fromPaths[path] = alias;
+      if (path != "")
+        toPaths.push_back(path);
     }
 
     if (readFromPaths == false && lines[i].rfind("pictures_dir", 0) == 0) {
@@ -182,6 +240,8 @@ void loadConfig() {
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
       fs::path path = static_cast<fs::path>(strPath);
       picturesPath  = path;
+      if (path != "")
+        toPaths.push_back(path);
     }
 
     if (readFromPaths == false && lines[i].rfind("sounds_dir", 0) == 0) {
@@ -190,6 +250,8 @@ void loadConfig() {
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
       fs::path path = static_cast<fs::path>(strPath);
       soundsPath    = path;
+      if (path != "")
+        toPaths.push_back(path);
     }
 
     if (readFromPaths == false && lines[i].rfind("books_dir", 0) == 0) {
@@ -198,6 +260,8 @@ void loadConfig() {
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
       fs::path path = static_cast<fs::path>(strPath);
       bookPath      = path;
+      if (path != "")
+        toPaths.push_back(path);
     }
 
     if (readFromPaths == false && lines[i].rfind("video_dir", 0) == 0) {
@@ -206,6 +270,8 @@ void loadConfig() {
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
       fs::path path = static_cast<fs::path>(strPath);
       videoPath     = path;
+      if (path != "")
+        toPaths.push_back(path);
     }
   }
   configFile.close();
