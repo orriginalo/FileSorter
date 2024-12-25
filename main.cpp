@@ -6,20 +6,25 @@
 #include <map>
 #include <fstream>
 #include <sstream>
-#include <stdexcept>
 
 namespace fs = std::filesystem;
 using namespace std;
 
-fs::path downloadsPath = "C:\\Users\\orriginalo\\Downloads";
-fs::path desktopPath   = "C:\\Users\\orriginalo\\Desktop";
-fs::path picturesPath  = "C:\\Users\\orriginalo\\Desktop\\Pictures";
-fs::path soundsPath    = "C:\\Users\\orriginalo\\Desktop\\Sounds";
+fs::path downloadsPath;
+fs::path desktopPath;
+fs::path picturesPath;
+fs::path soundsPath;
+fs::path bookPath;
+fs::path videoPath;
 
 vector<string> pictureExtentions = {".png",  ".jpg", ".jpeg", ".webp", ".svg", ".tiff", ".heic",
                                     ".jfif", ".bmp", ".apng", ".avif", ".tif", ".tga",  ".psd",
                                     ".eps",  ".ai",  ".indd", ".raw",  ".ico"};
 vector<string> soundExtentions   = {".mp3", ".wav", ".flac", ".ogg", ".aac", ".m4a", ".wma", ".aiff", ".au", ".opus"};
+vector<string> bookExtentions    = {".pdf",  ".epub", ".mobi", ".cbz", ".cbr", ".chm",
+                                    ".djvu", ".fb2",  ".lit",  ".prc", ".xps"};
+vector<string> videoExtentions   = {".mp4", ".mkv", ".avi", ".flv", ".webm", ".wmv",
+                                    ".mov", ".m4v", ".3gp", ".3g2", ".swf"};
 
 map<fs::path, string> fromPaths;
 
@@ -69,12 +74,6 @@ int main() {
         exitFromLoop = false;
       }
     }
-
-    // for (auto& el : variantsArr) {
-    //   cout << el;
-    // }
-
-    cout << endl;
   } while (!exitFromLoop);
   // getline(cin, variants);
 
@@ -83,7 +82,9 @@ int main() {
 
   for (int &var : variantsArr) {
     fs::path currentPath = getPathByNumber(var);
-    sortFiles(currentPath);
+    if (currentPath != "") {
+      sortFiles(currentPath);
+    }
   }
 
   if (totalFilesSorted >= 1) {
@@ -189,6 +190,22 @@ void loadConfig() {
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
       fs::path path = static_cast<fs::path>(strPath);
       soundsPath    = path;
+    }
+
+    if (readFromPaths == false && lines[i].rfind("books_dir", 0) == 0) {
+      size_t separator = lines[i].find(" = ");
+      string strPath   = lines[i].substr(separator + 3);
+      strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
+      fs::path path = static_cast<fs::path>(strPath);
+      bookPath      = path;
+    }
+
+    if (readFromPaths == false && lines[i].rfind("video_dir", 0) == 0) {
+      size_t separator = lines[i].find(" = ");
+      string strPath   = lines[i].substr(separator + 3);
+      strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
+      fs::path path = static_cast<fs::path>(strPath);
+      videoPath     = path;
     }
   }
   configFile.close();
