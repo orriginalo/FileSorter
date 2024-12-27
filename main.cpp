@@ -6,6 +6,9 @@
 #include <map>
 #include <fstream>
 #include <sstream>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
 
 namespace fs = std::filesystem;
 using namespace std;
@@ -16,6 +19,9 @@ fs::path picturesPath;
 fs::path soundsPath;
 fs::path bookPath;
 fs::path videoPath;
+
+std::_Put_time<char> curTime;
+string logFileName;
 
 vector<string> pictureExtentions = {".png",  ".jpg", ".jpeg", ".webp", ".svg", ".tiff", ".heic",
                                     ".jfif", ".bmp", ".apng", ".avif", ".tif", ".tga",  ".psd",
@@ -37,6 +43,8 @@ void sortFiles(const fs::path &, bool);
 void createDirectoryIfNotExists(const fs::path &);
 void loadConfig();
 fs::path getPathByNumber(int &);
+std::_Put_time<char> getCurTime();
+void writeToLog(fs::path, fs::path);
 
 int main() {
   setlocale(LC_ALL, "ru_RU.UTF-8");
@@ -44,12 +52,15 @@ int main() {
   string variants;
 
   loadConfig();
-
+  curTime = getCurTime();
+  stringstream oss;
+  oss << "./logs/" << curTime << ".log";
+  logFileName = oss.str();
   // for (const auto& pair : fromPaths) {
   //   cout << pair.first << " : " << pair.second << endl;
   // }
 
-  cout << "Select from:" << endl;
+  cout << "Select from: (You can select more than one)" << endl;
   int counter = 1;
   for (const auto &pair : fromPaths) {
     cout << counter << ". " << pair.second << endl;
@@ -91,16 +102,20 @@ int main() {
 
   bool isRecursive = answer == "y";
 
+  auto start = chrono::high_resolution_clock::now();
   for (int &var : variantsArr) {
     fs::path currentPath = getPathByNumber(var);
     if (currentPath != "") {
       sortFiles(currentPath, isRecursive);
     }
   }
+  auto end = chrono::high_resolution_clock::now();
+
+  auto elapsed_time = chrono::duration_cast<chrono::milliseconds>(end-start);
 
   if (totalFilesSorted >= 1) {
     cout << "File sorting is complete." << endl;
-    cout << "Total sorted " << totalFilesSorted << " files." << endl;
+    cout << "Total sorted " << totalFilesSorted << " files in " << static_cast<float>(elapsed_time.count())/1000 << " seconds." << endl;
   } else {
     cout << "There are no files to sort." << endl;
   }
@@ -171,25 +186,33 @@ void sortFiles(const fs::path &src, bool isRecursive = false) {
           auto extension  = entry.path().extension();
           auto picturesIt = find(pictureExtentions.begin(), pictureExtentions.end(), extension);
           if (picturesIt != pictureExtentions.end()) {
-            fs::rename(entry, picturesPath / entry.path().filename());
+            fs::path dst = picturesPath / entry.path().filename();
+            fs::rename(entry, dst);
+            writeToLog(entry, dst);
             totalFilesSorted++;
           }
 
           auto soundsIt = find(soundExtentions.begin(), soundExtentions.end(), extension);
           if (soundsIt != soundExtentions.end()) {
-            fs::rename(entry, soundsPath / entry.path().filename());
+            fs::path dst = soundsPath / entry.path().filename();
+            fs::rename(entry, dst);
+            writeToLog(entry, dst);
             totalFilesSorted++;
           }
 
           auto booksIt = find(bookExtentions.begin(), bookExtentions.end(), extension);
           if (booksIt != bookExtentions.end()) {
-            fs::rename(entry, bookPath / entry.path().filename());
+            fs::path dst = bookPath / entry.path().filename();
+            fs::rename(entry, dst);
+            writeToLog(entry, dst);
             totalFilesSorted++;
           }
 
           auto videosIt = find(videoExtentions.begin(), videoExtentions.end(), extension);
           if (videosIt != videoExtentions.end()) {
-            fs::rename(entry, videoPath / entry.path().filename());
+            fs::path dst = videoPath / entry.path().filename();
+            fs::rename(entry, dst);
+            writeToLog(entry, dst);
             totalFilesSorted++;
           }
         } catch (fs::filesystem_error &e) {
@@ -200,6 +223,19 @@ void sortFiles(const fs::path &src, bool isRecursive = false) {
   } catch (fs::filesystem_error &e) {
     cout << "Filesystem error: " << e.what() << endl;
   }
+}
+
+void writeToLog(fs::path src, fs::path dst) {
+  fstream logFile(logFileName, ios::app);
+  logFile << src << " moved to " << dst << endl;
+  logFile.close();
+}
+
+std::_Put_time<char> getCurTime() {
+  auto time = chrono::system_clock::now();
+  auto time_c = chrono::system_clock::to_time_t(time);
+
+  return put_time(localtime(&time_c), "%d-%m-%Y %H-%M-%S"); 
 }
 
 void loadConfig() {
