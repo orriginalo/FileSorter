@@ -51,7 +51,32 @@ int main() {
   vector<int> variantsArr;
   string variants;
 
+  if(!fs::exists("./filesorter.cfg")) {
+    ofstream cfgFile("./filesorter.cfg", ios::app);
+    cfgFile << "# You can add self directory by:" << endl;
+    cfgFile << "# \"path\\to\\directory\" - alias (all without tabulation)" << endl;
+    cfgFile << "from_paths {" << endl;
+    cfgFile << endl;
+    cfgFile << "}" << endl;
+    cfgFile << endl;
+    cfgFile << "# here you can set destination directory" << endl;
+    cfgFile << "pictures_dir = \"\"" << endl;
+    cfgFile << "sounds_dir = \"\"" << endl;
+    cfgFile << "video_dir = \"\"" << endl;
+    cfgFile << "books_dir = \"\"";
+  }
+
   loadConfig();
+
+  if(fromPaths.size() == 0) {
+    cout << "ERROR: No source paths specified. Specify your own paths in ./filesorter.cfg" << endl;
+    return 1;
+  }
+
+  if(toPaths.size() == 0) {
+    cout << "WARNING: No destination paths specified. Specify your own paths in ./filesorter.cfg" << endl;
+  }
+
   curTime = getCurTime();
   stringstream oss;
   oss << "./logs/" << curTime << ".log";
@@ -93,6 +118,7 @@ int main() {
   }
   createDirectoryIfNotExists(picturesPath);
   createDirectoryIfNotExists(soundsPath);
+  createDirectoryIfNotExists("./logs");
 
   string answer;
   do {
@@ -239,7 +265,7 @@ std::_Put_time<char> getCurTime() {
 }
 
 void loadConfig() {
-  ifstream configFile("cppsorter.cfg");
+  ifstream configFile("filesorter.cfg");
   string line;
   vector<string> lines;
 
@@ -259,11 +285,19 @@ void loadConfig() {
       readFromPaths = false;
     }
 
+
     else if (readFromPaths == true) {
       size_t separator = lines[i].find(" - ");
+      if (separator == string::npos) {
+        // cout << "Invalid line format: " << lines[i] << endl;
+        continue;
+      }
       string strPath   = lines[i].substr(0, separator);
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
       fs::path path   = static_cast<fs::path>(strPath);
+      if (!fs::exists(path)) {
+        cout << "WARNING: Path " << path << " doesn't exists" << endl; 
+      }
       string alias    = lines[i].substr(separator + 3);
       fromPaths[path] = alias;
       if (path != "")
@@ -272,6 +306,10 @@ void loadConfig() {
 
     if (readFromPaths == false && lines[i].rfind("pictures_dir", 0) == 0) {
       size_t separator = lines[i].find(" = ");
+      if (separator == string::npos) {
+        // cout << "Invalid line format: " << lines[i] << endl;
+        continue;
+      }
       string strPath   = lines[i].substr(separator + 3);
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
       fs::path path = static_cast<fs::path>(strPath);
@@ -282,6 +320,10 @@ void loadConfig() {
 
     if (readFromPaths == false && lines[i].rfind("sounds_dir", 0) == 0) {
       size_t separator = lines[i].find(" = ");
+      if (separator == string::npos) {
+        // cout << "Invalid line format: " << lines[i] << endl;
+        continue;
+      }
       string strPath   = lines[i].substr(separator + 3);
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
       fs::path path = static_cast<fs::path>(strPath);
@@ -292,6 +334,10 @@ void loadConfig() {
 
     if (readFromPaths == false && lines[i].rfind("books_dir", 0) == 0) {
       size_t separator = lines[i].find(" = ");
+      if (separator == string::npos) {
+        // cout << "Invalid line format: " << lines[i] << endl;
+        continue;
+      }
       string strPath   = lines[i].substr(separator + 3);
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
       fs::path path = static_cast<fs::path>(strPath);
@@ -302,6 +348,10 @@ void loadConfig() {
 
     if (readFromPaths == false && lines[i].rfind("video_dir", 0) == 0) {
       size_t separator = lines[i].find(" = ");
+      if (separator == string::npos) {
+        // cout << "Invalid line format: " << lines[i] << endl;
+        continue;
+      }
       string strPath   = lines[i].substr(separator + 3);
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
       fs::path path = static_cast<fs::path>(strPath);
