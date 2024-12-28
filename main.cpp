@@ -114,6 +114,17 @@ int main() {
   //   cout << pair.first << " : " << pair.second << endl;
   // }
 
+  // cout << "Source paths:" << endl;
+  // for (const auto &pair : fromPaths) {
+  //   cout << pair.first << " : " << pair.second << endl;
+  // }
+  // cout << "Destination paths:" << endl;
+  // for (int i = 0; i < toPaths.size(); i++) {
+  //   fs::path path = toPaths[i];
+  //   cout << i << ". " << path << endl;
+  // }
+  // cout << toPaths.size() << endl;
+
   cout << "Select from: (You can select more than one)" << endl;
   int counter = 1;
   for (const auto &pair : fromPaths) {
@@ -209,25 +220,25 @@ void sortFiles(const fs::path &src, bool isRecursive = false) {
         try {
           auto extension  = entry.path().extension();
           auto picturesIt = find(pictureExtentions.begin(), pictureExtentions.end(), extension);
-          if (picturesIt != pictureExtentions.end()) {
+          if (picturesIt != pictureExtentions.end() && picturesPath != "") {
             fs::rename(entry, picturesPath / entry.path().filename());
             totalFilesSorted++;
           }
 
           auto soundsIt = find(soundExtentions.begin(), soundExtentions.end(), extension);
-          if (soundsIt != soundExtentions.end()) {
+          if (soundsIt != soundExtentions.end() && soundsPath != "") {
             fs::rename(entry, soundsPath / entry.path().filename());
             totalFilesSorted++;
           }
 
           auto booksIt = find(bookExtentions.begin(), bookExtentions.end(), extension);
-          if (booksIt != bookExtentions.end()) {
+          if (booksIt != bookExtentions.end() && bookPath != "") {
             fs::rename(entry, bookPath / entry.path().filename());
             totalFilesSorted++;
           }
 
           auto videosIt = find(videoExtentions.begin(), videoExtentions.end(), extension);
-          if (videosIt != videoExtentions.end()) {
+          if (videosIt != videoExtentions.end() && videoPath != "") {
             fs::rename(entry, videoPath / entry.path().filename());
             totalFilesSorted++;
           }
@@ -240,7 +251,7 @@ void sortFiles(const fs::path &src, bool isRecursive = false) {
         try {
           auto extension  = entry.path().extension();
           auto picturesIt = find(pictureExtentions.begin(), pictureExtentions.end(), extension);
-          if (picturesIt != pictureExtentions.end()) {
+          if (picturesIt != pictureExtentions.end() && picturesPath != "") {
             fs::path dst = picturesPath / entry.path().filename();
             fs::rename(entry, dst);
             writeToLog(entry, dst);
@@ -248,7 +259,7 @@ void sortFiles(const fs::path &src, bool isRecursive = false) {
           }
 
           auto soundsIt = find(soundExtentions.begin(), soundExtentions.end(), extension);
-          if (soundsIt != soundExtentions.end()) {
+          if (soundsIt != soundExtentions.end() && soundsPath != "") {
             fs::path dst = soundsPath / entry.path().filename();
             fs::rename(entry, dst);
             writeToLog(entry, dst);
@@ -256,7 +267,7 @@ void sortFiles(const fs::path &src, bool isRecursive = false) {
           }
 
           auto booksIt = find(bookExtentions.begin(), bookExtentions.end(), extension);
-          if (booksIt != bookExtentions.end()) {
+          if (booksIt != bookExtentions.end() && bookPath != "") {
             fs::path dst = bookPath / entry.path().filename();
             fs::rename(entry, dst);
             writeToLog(entry, dst);
@@ -264,7 +275,7 @@ void sortFiles(const fs::path &src, bool isRecursive = false) {
           }
 
           auto videosIt = find(videoExtentions.begin(), videoExtentions.end(), extension);
-          if (videosIt != videoExtentions.end()) {
+          if (videosIt != videoExtentions.end() && videoPath != "") {
             fs::path dst = videoPath / entry.path().filename();
             fs::rename(entry, dst);
             writeToLog(entry, dst);
@@ -331,7 +342,7 @@ void loadConfig() {
       fs::path path = static_cast<fs::path>(strPath);
       if (!fs::exists(path)) {
         cout << "ERROR: Path " << path << " doesn't exists." << endl;
-        exit(1);
+        // exit(1);
       }
       string alias    = lines[i].substr(separator + 3);
       fromPaths[path] = alias;
