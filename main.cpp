@@ -10,6 +10,10 @@
 #include <iomanip>
 #include <sstream>
 
+#ifdef _WIN32
+#  include <windows.h>
+#endif
+
 namespace fs = std::filesystem;
 using namespace std;
 
@@ -22,6 +26,7 @@ fs::path videoPath;
 
 std::_Put_time<char> curTime;
 string logFileName;
+string configFileName;
 
 vector<string> pictureExtentions = {".png",  ".jpg", ".jpeg", ".webp", ".svg", ".tiff", ".heic",
                                     ".jfif", ".bmp", ".apng", ".avif", ".tif", ".tga",  ".psd",
@@ -37,7 +42,8 @@ map<fs::path, string> fromPaths;
 
 int totalFilesSorted = 0;
 fs::path path        = "";
-bool exitFromLoop    = false;
+fs::path executablePath;
+bool exitFromLoop = false;
 
 void sortFiles(const fs::path &, bool);
 void createDirectoryIfNotExists(const fs::path &);
@@ -45,16 +51,40 @@ void loadConfig();
 fs::path getPathByNumber(int &);
 std::_Put_time<char> getCurTime();
 void writeToLog(fs::path, fs::path);
+fs::path getExecutableDir();
+string trim(const string &);
 
 int main() {
   setlocale(LC_ALL, "ru_RU.UTF-8");
   vector<int> variantsArr;
   string variants;
 
-  if(!fs::exists("./filesorter.cfg")) {
-    ofstream cfgFile("./filesorter.cfg", ios::app);
+  executablePath = getExecutableDir();
+
+  curTime = getCurTime();
+  stringstream oss;
+  oss << executablePath.string() << "\\logs\\" << curTime << ".log";
+  logFileName = oss.str();
+
+  configFileName = executablePath.string() + "\\filesorter.cfg";
+
+#ifdef _WIN32
+  configFileName = executablePath.string() + "\\filesorter.cfg";
+  stringstream ossw;
+  ossw << executablePath.string() << "\\logs\\" << curTime << ".log";
+  logFileName = ossw.str();
+#elif __linux__
+  configFileName = executablePath.string() + "/filesorter.cfg";
+  stringstream ossl;
+  ossl << executablePath.string() << "/logs/" << curTime << ".log";
+  logFileName = ossl.str();
+#endif
+
+  if (!fs::exists(configFileName)) {
+    ofstream cfgFile(configFileName, ios::app);
+    cout << "Config file doesn't exists. Creating..." << endl;
     cfgFile << "# You can add self directory by:" << endl;
-    cfgFile << "# \"path\\to\\directory\" - alias (all without tabulation)" << endl;
+    cfgFile << "# \"path\\to\\directory\" - alias" << endl;
     cfgFile << "from_paths {" << endl;
     cfgFile << endl;
     cfgFile << "}" << endl;
@@ -68,19 +98,15 @@ int main() {
 
   loadConfig();
 
-  if(fromPaths.size() == 0) {
-    cout << "ERROR: No source paths specified. Specify your own paths in ./filesorter.cfg" << endl;
+  if (fromPaths.size() == 0) {
+    cout << "ERROR: No source paths specified. Specify your own paths in filesorter.cfg" << endl;
     return 1;
   }
 
-  if(toPaths.size() == 0) {
-    cout << "WARNING: No destination paths specified. Specify your own paths in ./filesorter.cfg" << endl;
+  if (toPaths.size() == 0) {
+    cout << "WARNING: No destination paths specified. Specify your own paths in filesorter.cfg" << endl;
   }
 
-  curTime = getCurTime();
-  stringstream oss;
-  oss << "./logs/" << curTime << ".log";
-  logFileName = oss.str();
   // for (const auto& pair : fromPaths) {
   //   cout << pair.first << " : " << pair.second << endl;
   // }
@@ -118,7 +144,7 @@ int main() {
   }
   createDirectoryIfNotExists(picturesPath);
   createDirectoryIfNotExists(soundsPath);
-  createDirectoryIfNotExists("./logs");
+  createDirectoryIfNotExists(executablePath.string() + "\\logs");
 
   string answer;
   do {
@@ -137,11 +163,12 @@ int main() {
   }
   auto end = chrono::high_resolution_clock::now();
 
-  auto elapsed_time = chrono::duration_cast<chrono::milliseconds>(end-start);
+  auto elapsed_time = chrono::duration_cast<chrono::milliseconds>(end - start);
 
   if (totalFilesSorted >= 1) {
     cout << "File sorting is complete." << endl;
-    cout << "Total sorted " << totalFilesSorted << " files in " << static_cast<float>(elapsed_time.count())/1000 << " seconds." << endl;
+    cout << "Total sorted " << totalFilesSorted << " files in " << static_cast<float>(elapsed_time.count()) / 1000
+         << " seconds." << endl;
   } else {
     cout << "There are no files to sort." << endl;
   }
@@ -175,7 +202,7 @@ void createDirectoryIfNotExists(const fs::path &path) {
 
 void sortFiles(const fs::path &src, bool isRecursive = false) {
   try {
-    if(isRecursive) {
+    if (isRecursive) {
       for (const auto &entry : fs::recursive_directory_iterator(src)) {
         try {
           auto extension  = entry.path().extension();
@@ -258,21 +285,27 @@ void writeToLog(fs::path src, fs::path dst) {
 }
 
 std::_Put_time<char> getCurTime() {
-  auto time = chrono::system_clock::now();
+  auto time   = chrono::system_clock::now();
   auto time_c = chrono::system_clock::to_time_t(time);
 
-  return put_time(localtime(&time_c), "%d-%m-%Y %H-%M-%S"); 
+  return put_time(localtime(&time_c), "%d-%m-%Y %H-%M-%S");
+}
+
+std::string trim(const std::string &str) {
+  size_t start = str.find_first_not_of(" \t");
+  size_t end   = str.find_last_not_of(" \t");
+  return (start == std::string::npos) ? "" : str.substr(start, end - start + 1);
 }
 
 void loadConfig() {
-  ifstream configFile("filesorter.cfg");
+  ifstream configFile(configFileName);
   string line;
   vector<string> lines;
 
   bool readFromPaths = false;
 
   while (getline(configFile, line)) {
-    lines.push_back(line);
+    lines.push_back(trim(line));
   }
 
   for (int i = 0; i < lines.size(); i++) {
@@ -285,18 +318,17 @@ void loadConfig() {
       readFromPaths = false;
     }
 
-
     else if (readFromPaths == true) {
       size_t separator = lines[i].find(" - ");
       if (separator == string::npos) {
         // cout << "Invalid line format: " << lines[i] << endl;
         continue;
       }
-      string strPath   = lines[i].substr(0, separator);
+      string strPath = lines[i].substr(0, separator);
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
-      fs::path path   = static_cast<fs::path>(strPath);
+      fs::path path = static_cast<fs::path>(strPath);
       if (!fs::exists(path)) {
-        cout << "WARNING: Path " << path << " doesn't exists" << endl; 
+        cout << "WARNING: Path " << path << " doesn't exists" << endl;
       }
       string alias    = lines[i].substr(separator + 3);
       fromPaths[path] = alias;
@@ -310,7 +342,7 @@ void loadConfig() {
         // cout << "Invalid line format: " << lines[i] << endl;
         continue;
       }
-      string strPath   = lines[i].substr(separator + 3);
+      string strPath = lines[i].substr(separator + 3);
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
       fs::path path = static_cast<fs::path>(strPath);
       picturesPath  = path;
@@ -324,7 +356,7 @@ void loadConfig() {
         // cout << "Invalid line format: " << lines[i] << endl;
         continue;
       }
-      string strPath   = lines[i].substr(separator + 3);
+      string strPath = lines[i].substr(separator + 3);
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
       fs::path path = static_cast<fs::path>(strPath);
       soundsPath    = path;
@@ -338,7 +370,7 @@ void loadConfig() {
         // cout << "Invalid line format: " << lines[i] << endl;
         continue;
       }
-      string strPath   = lines[i].substr(separator + 3);
+      string strPath = lines[i].substr(separator + 3);
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
       fs::path path = static_cast<fs::path>(strPath);
       bookPath      = path;
@@ -352,7 +384,7 @@ void loadConfig() {
         // cout << "Invalid line format: " << lines[i] << endl;
         continue;
       }
-      string strPath   = lines[i].substr(separator + 3);
+      string strPath = lines[i].substr(separator + 3);
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
       fs::path path = static_cast<fs::path>(strPath);
       videoPath     = path;
@@ -361,4 +393,18 @@ void loadConfig() {
     }
   }
   configFile.close();
+}
+
+fs::path getExecutableDir() {
+#ifdef _WIN32
+  // Для Windows используем GetModuleFileName
+  char buffer[MAX_PATH];
+  GetModuleFileNameA(NULL, buffer, MAX_PATH); // Получаем полный путь к исполняемому файлу
+  return fs::path(buffer).parent_path();      // Возвращаем директорию
+#elif __linux__
+  // Для Linux используем /proc/self/exe
+  return fs::canonical("/proc/self/exe").parent_path();
+#else
+  throw std::runtime_error("Unsupported operating system");
+#endif
 }
