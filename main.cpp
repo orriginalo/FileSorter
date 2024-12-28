@@ -25,6 +25,7 @@ fs::path bookPath;
 fs::path videoPath;
 
 std::_Put_time<char> curTime;
+string logDirName;
 string logFileName;
 string configFileName;
 
@@ -73,11 +74,13 @@ int main() {
   stringstream ossw;
   ossw << executablePath.string() << "\\logs\\" << curTime << ".log";
   logFileName = ossw.str();
+  logDirName  = executablePath.string() + "\\logs";
 #elif __linux__
   configFileName = executablePath.string() + "/filesorter.cfg";
   stringstream ossl;
   ossl << executablePath.string() << "/logs/" << curTime << ".log";
   logFileName = ossl.str();
+  logDirName  = executablePath.string() + "/logs";
 #endif
 
   if (!fs::exists(configFileName)) {
@@ -133,7 +136,7 @@ int main() {
         variantsArr.push_back(variant);
         exitFromLoop = true;
       } else {
-        cout << "Variant " << variant << " doesnt exists" << endl;
+        cout << "Variant " << variant << " doesn't exists" << endl;
         exitFromLoop = false;
       }
     }
@@ -142,9 +145,8 @@ int main() {
   for (fs::path &path : toPaths) {
     createDirectoryIfNotExists(path);
   }
-  createDirectoryIfNotExists(picturesPath);
-  createDirectoryIfNotExists(soundsPath);
-  createDirectoryIfNotExists(executablePath.string() + "\\logs");
+
+  createDirectoryIfNotExists(logDirName);
 
   string answer;
   do {
@@ -328,12 +330,11 @@ void loadConfig() {
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
       fs::path path = static_cast<fs::path>(strPath);
       if (!fs::exists(path)) {
-        cout << "WARNING: Path " << path << " doesn't exists" << endl;
+        cout << "ERROR: Path " << path << " doesn't exists." << endl;
+        exit(1);
       }
       string alias    = lines[i].substr(separator + 3);
       fromPaths[path] = alias;
-      if (path != "")
-        toPaths.push_back(path);
     }
 
     if (readFromPaths == false && lines[i].rfind("pictures_dir", 0) == 0) {
