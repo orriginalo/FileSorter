@@ -18,7 +18,7 @@
 namespace fs = std::filesystem;
 using namespace std;
 
-const string VERSION = "1.2.0";
+const string VERSION = "1.3.0";
 bool debugMode       = false;
 
 fs::path downloadsPath;
@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
 
   if (!fs::exists(configFileName)) {
     ofstream cfgFile(configFileName, ios::app);
-    cout << "Config file doesn't exists. Creating..." << endl;
+    cout << "Config file doesn't exists. Creating... (you can use `-c` option to see path to the config file)" << endl;
     cfgFile << "# You can add self directory by:" << endl;
     cfgFile << "# \"path\\to\\directory\" - alias" << endl;
     cfgFile << "from_paths {" << endl;
@@ -109,24 +109,21 @@ int main(int argc, char *argv[]) {
 
   loadConfig();
 
-  if (fromPaths.size() == 0) {
-    cout << "ERROR: No source paths specified. Specify your own paths in filesorter.cfg" << endl;
-    return 1;
-  }
-
-  if (toPaths.size() == 0) {
-    cout << "WARNING: No destination paths specified. Specify your own paths in filesorter.cfg" << endl;
-  }
-
-  // for (const auto& pair : fromPaths) {
-  //   cout << pair.first << " : " << pair.second << endl;
-  // }
-
   if (debugMode) {
     cout << "===================================" << endl;
     cout << "Source paths:" << endl;
     for (const auto &pair : fromPaths) {
-      cout << pair.first << " : " << pair.second;
+      stringstream ss;
+      ss << pair.first << ": " << pair.second;
+      string str = ss.str();
+#ifdef __linux__
+      auto pos = str.find("\r");
+      if (pos != string::npos) {
+        str.replace(str.find("\r"), 1, "");
+      }
+#endif
+      cout << str;
+
       if (fs::exists(pair.first)) {
         cout << " | Exists" << endl;
       } else {
@@ -134,19 +131,40 @@ int main(int argc, char *argv[]) {
       }
     }
     cout << "-----------------------------------" << endl;
-    cout << "Destination paths:" << endl;
-    for (int i = 0; i < toPaths.size(); i++) {
-      fs::path path = toPaths[i];
-      cout << i + 1 << ". " << path;
-      if (fs::exists(path)) {
-        cout << " | Exists" << endl;
-      } else {
-        cout << " | Not exists" << endl;
+    if (toPaths.size() > 0) {
+      cout << "Destination paths:" << endl;
+      for (int i = 0; i < toPaths.size(); i++) {
+        fs::path path = toPaths[i];
+        stringstream ss;
+        ss << i + 1 << ". " << path;
+        string str = ss.str();
+#ifdef __linux__
+        auto pos = str.find("\r");
+        if (pos != string::npos) {
+          str.replace(pos, 1, "");
+        }
+#endif
+        cout << str;
+        if (fs::exists(path)) {
+          cout << " | Exists" << endl;
+        } else {
+          cout << " | Not exists" << endl;
+        }
       }
+    } else {
+      cout << "No destination paths specified" << endl;
     }
-    cout << "Total dest. paths: " << toPaths.size() << endl;
     cout << "===================================" << endl;
     cout << endl;
+  }
+
+  if (fromPaths.size() == 0) {
+    cout << "ERROR: No source paths specified. Specify your own paths in filesorter.cfg" << endl;
+    return 1;
+  }
+
+  if (toPaths.size() == 0) {
+    cout << "WARNING: No destination paths specified. Specify your own paths in filesorter.cfg" << endl;
   }
 
   cout << "Select from: (You can select more than one)" << endl;
@@ -414,8 +432,10 @@ void loadConfig() {
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
       fs::path path = static_cast<fs::path>(strPath);
       picturesPath  = path;
-      if (path != "")
+
+      if (path.string() != "" && path.string() != "\r") {
         toPaths.push_back(path);
+      }
     }
 
     if (readFromPaths == false && lines[i].rfind("sounds_dir", 0) == 0) {
@@ -428,8 +448,9 @@ void loadConfig() {
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
       fs::path path = static_cast<fs::path>(strPath);
       soundsPath    = path;
-      if (path != "")
+      if (path.string() != "" && path.string() != "\r") {
         toPaths.push_back(path);
+      }
     }
 
     if (readFromPaths == false && lines[i].rfind("books_dir", 0) == 0) {
@@ -442,8 +463,9 @@ void loadConfig() {
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
       fs::path path = static_cast<fs::path>(strPath);
       bookPath      = path;
-      if (path != "")
+      if (path.string() != "" && path.string() != "\r") {
         toPaths.push_back(path);
+      }
     }
 
     if (readFromPaths == false && lines[i].rfind("video_dir", 0) == 0) {
@@ -456,8 +478,9 @@ void loadConfig() {
       strPath.erase(remove(strPath.begin(), strPath.end(), '"'), strPath.end());
       fs::path path = static_cast<fs::path>(strPath);
       videoPath     = path;
-      if (path != "")
+      if (path.string() != "" && path.string() != "\r") {
         toPaths.push_back(path);
+      }
     }
   }
   configFile.close();
@@ -509,8 +532,13 @@ void checkArgs(int argc, char *argv[]) {
         exit(0);
       }
       sort(logs.begin(), logs.end());
+#ifdef _WIN32
       cout << "Opening last log file " << logs[logs.size() - 1].string() << endl;
-      system((logs[logs.size() - 1].string()).c_str());
+      string cmd = ("\"" + logs[logs.size() - 1].string() + "\"");
+      system(cmd.c_str());
+#elif __linux__
+      cout << "Last log file: " << logs[logs.size() - 1].string() << endl;
+#endif
       exit(0);
     }
     if (checkArg(argc, argv, "-d", "--debug")) {

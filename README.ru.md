@@ -56,7 +56,7 @@ g++ -std=c++17 -Iinclude -o filesorter src/main.cpp src/argparser.cpp
 ```cfg
 # Укажите пути-источники:
 from_paths {
-  "C:\\Users\\User\\Downloads" -Downloads
+  "C:\\Users\\User\\Downloads" - Downloads
   "C:\\Users\\User\\Desktop" - Desktop
 }
 
