@@ -9,6 +9,7 @@
 #include <chrono>
 #include <iomanip>
 #include <sstream>
+#include "../include/argparser.h"
 
 #ifdef _WIN32
 #  include <windows.h>
@@ -16,6 +17,9 @@
 
 namespace fs = std::filesystem;
 using namespace std;
+
+const string VERSION = "1.2.0";
+bool debugMode       = false;
 
 fs::path downloadsPath;
 fs::path desktopPath;
@@ -49,14 +53,16 @@ bool exitFromLoop = false;
 void sortFiles(const fs::path &, bool);
 void createDirectoryIfNotExists(const fs::path &);
 void loadConfig();
-fs::path getPathByNumber(int &);
-std::_Put_time<char> getCurTime();
 void writeToLog(fs::path, fs::path);
+void checkArgs(int argc, char *argv[]);
+fs::path getPathByNumber(int &);
 fs::path getExecutableDir();
+std::_Put_time<char> getCurTime();
 string trim(const string &);
 
-int main() {
+int main(int argc, char *argv[]) {
   setlocale(LC_ALL, "ru_RU.UTF-8");
+
   vector<int> variantsArr;
   string variants;
 
@@ -82,6 +88,8 @@ int main() {
   logFileName = ossl.str();
   logDirName  = executablePath.string() + "/logs";
 #endif
+
+  checkArgs(argc, argv);
 
   if (!fs::exists(configFileName)) {
     ofstream cfgFile(configFileName, ios::app);
@@ -114,16 +122,32 @@ int main() {
   //   cout << pair.first << " : " << pair.second << endl;
   // }
 
-  // cout << "Source paths:" << endl;
-  // for (const auto &pair : fromPaths) {
-  //   cout << pair.first << " : " << pair.second << endl;
-  // }
-  // cout << "Destination paths:" << endl;
-  // for (int i = 0; i < toPaths.size(); i++) {
-  //   fs::path path = toPaths[i];
-  //   cout << i << ". " << path << endl;
-  // }
-  // cout << toPaths.size() << endl;
+  if (debugMode) {
+    cout << "===================================" << endl;
+    cout << "Source paths:" << endl;
+    for (const auto &pair : fromPaths) {
+      cout << pair.first << " : " << pair.second;
+      if (fs::exists(pair.first)) {
+        cout << " | Exists" << endl;
+      } else {
+        cout << " | Not exists" << endl;
+      }
+    }
+    cout << "-----------------------------------" << endl;
+    cout << "Destination paths:" << endl;
+    for (int i = 0; i < toPaths.size(); i++) {
+      fs::path path = toPaths[i];
+      cout << i + 1 << ". " << path;
+      if (fs::exists(path)) {
+        cout << " | Exists" << endl;
+      } else {
+        cout << " | Not exists" << endl;
+      }
+    }
+    cout << "Total dest. paths: " << toPaths.size() << endl;
+    cout << "===================================" << endl;
+    cout << endl;
+  }
 
   cout << "Select from: (You can select more than one)" << endl;
   int counter = 1;
@@ -221,25 +245,45 @@ void sortFiles(const fs::path &src, bool isRecursive = false) {
           auto extension  = entry.path().extension();
           auto picturesIt = find(pictureExtentions.begin(), pictureExtentions.end(), extension);
           if (picturesIt != pictureExtentions.end() && picturesPath != "") {
-            fs::rename(entry, picturesPath / entry.path().filename());
+            fs::path dst = picturesPath / entry.path().filename();
+            fs::rename(entry, dst);
+            if (debugMode) {
+              cout << "Moved " << entry.path().filename() << " to " << dst.string() << endl;
+            }
+            writeToLog(entry, dst);
             totalFilesSorted++;
           }
 
           auto soundsIt = find(soundExtentions.begin(), soundExtentions.end(), extension);
           if (soundsIt != soundExtentions.end() && soundsPath != "") {
-            fs::rename(entry, soundsPath / entry.path().filename());
+            fs::path dst = soundsPath / entry.path().filename();
+            fs::rename(entry, dst);
+            if (debugMode) {
+              cout << "Moved " << entry.path().filename() << " to " << dst.string() << endl;
+            }
+            writeToLog(entry, dst);
             totalFilesSorted++;
           }
 
           auto booksIt = find(bookExtentions.begin(), bookExtentions.end(), extension);
           if (booksIt != bookExtentions.end() && bookPath != "") {
-            fs::rename(entry, bookPath / entry.path().filename());
+            fs::path dst = bookPath / entry.path().filename();
+            fs::rename(entry, dst);
+            if (debugMode) {
+              cout << "Moved " << entry.path().filename() << " to " << dst.string() << endl;
+            }
+            writeToLog(entry, dst);
             totalFilesSorted++;
           }
 
           auto videosIt = find(videoExtentions.begin(), videoExtentions.end(), extension);
           if (videosIt != videoExtentions.end() && videoPath != "") {
-            fs::rename(entry, videoPath / entry.path().filename());
+            fs::path dst = videoPath / entry.path().filename();
+            fs::rename(entry, dst);
+            if (debugMode) {
+              cout << "Moved " << entry.path().filename() << " to " << dst.string() << endl;
+            }
+            writeToLog(entry, dst);
             totalFilesSorted++;
           }
         } catch (fs::filesystem_error &e) {
@@ -254,6 +298,9 @@ void sortFiles(const fs::path &src, bool isRecursive = false) {
           if (picturesIt != pictureExtentions.end() && picturesPath != "") {
             fs::path dst = picturesPath / entry.path().filename();
             fs::rename(entry, dst);
+            if (debugMode) {
+              cout << "Moved " << entry.path().filename() << " to " << dst.string() << endl;
+            }
             writeToLog(entry, dst);
             totalFilesSorted++;
           }
@@ -262,6 +309,9 @@ void sortFiles(const fs::path &src, bool isRecursive = false) {
           if (soundsIt != soundExtentions.end() && soundsPath != "") {
             fs::path dst = soundsPath / entry.path().filename();
             fs::rename(entry, dst);
+            if (debugMode) {
+              cout << "Moved " << entry.path().filename() << " to " << dst.string() << endl;
+            }
             writeToLog(entry, dst);
             totalFilesSorted++;
           }
@@ -270,6 +320,9 @@ void sortFiles(const fs::path &src, bool isRecursive = false) {
           if (booksIt != bookExtentions.end() && bookPath != "") {
             fs::path dst = bookPath / entry.path().filename();
             fs::rename(entry, dst);
+            if (debugMode) {
+              cout << "Moved " << entry.path().filename() << " to " << dst.string() << endl;
+            }
             writeToLog(entry, dst);
             totalFilesSorted++;
           }
@@ -278,6 +331,9 @@ void sortFiles(const fs::path &src, bool isRecursive = false) {
           if (videosIt != videoExtentions.end() && videoPath != "") {
             fs::path dst = videoPath / entry.path().filename();
             fs::rename(entry, dst);
+            if (debugMode) {
+              cout << "Moved " << entry.path().filename() << " to " << dst.string() << endl;
+            }
             writeToLog(entry, dst);
             totalFilesSorted++;
           }
@@ -292,7 +348,7 @@ void sortFiles(const fs::path &src, bool isRecursive = false) {
 }
 
 void writeToLog(fs::path src, fs::path dst) {
-  fstream logFile(logFileName, ios::app);
+  ofstream logFile(logFileName, ios::app);
   logFile << src << " moved to " << dst << endl;
   logFile.close();
 }
@@ -301,7 +357,7 @@ std::_Put_time<char> getCurTime() {
   auto time   = chrono::system_clock::now();
   auto time_c = chrono::system_clock::to_time_t(time);
 
-  return put_time(localtime(&time_c), "%d-%m-%Y %H-%M-%S");
+  return put_time(localtime(&time_c), "%d-%m-%Y_%H-%M-%S");
 }
 
 std::string trim(const std::string &str) {
@@ -342,7 +398,7 @@ void loadConfig() {
       fs::path path = static_cast<fs::path>(strPath);
       if (!fs::exists(path)) {
         cout << "ERROR: Path " << path << " doesn't exists." << endl;
-        // exit(1);
+        exit(1);
       }
       string alias    = lines[i].substr(separator + 3);
       fromPaths[path] = alias;
@@ -419,4 +475,47 @@ fs::path getExecutableDir() {
 #else
   throw std::runtime_error("Unsupported operating system");
 #endif
+}
+
+void checkArgs(int argc, char *argv[]) {
+  if (argc > 1) {
+    if (checkArg(argc, argv, "-h", "--help")) {
+      cout << "Usage: filesorter [options (optional)]" << endl;
+      cout << "Options:" << endl;
+      cout << "-h, --help - show this help" << endl;
+      cout << "-v, --version - show version" << endl;
+      cout << "-c, --config - show path to config file" << endl;
+      cout << "-l, --log - open last log file" << endl;
+      cout << "-d, --debug - debug mode" << endl;
+      exit(0);
+    }
+    if (checkArg(argc, argv, "-v", "--version")) {
+      cout << "Version: " << VERSION << endl;
+      exit(0);
+    }
+    if (checkArg(argc, argv, "-c", "--config")) {
+      cout << "Config file: " << configFileName << endl;
+      exit(0);
+    }
+    if (checkArg(argc, argv, "-l", "--log")) {
+      vector<fs::path> logs;
+      for (const auto &entry : fs::directory_iterator(logDirName)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".log") {
+          logs.push_back(entry.path());
+        }
+      }
+      if (logs.size() == 0) {
+        cout << "There are no logs" << endl;
+        exit(0);
+      }
+      sort(logs.begin(), logs.end());
+      cout << "Opening last log file " << logs[logs.size() - 1].string() << endl;
+      system((logs[logs.size() - 1].string()).c_str());
+      exit(0);
+    }
+    if (checkArg(argc, argv, "-d", "--debug")) {
+      cout << "Debug mode" << endl;
+      debugMode = true;
+    }
+  }
 }

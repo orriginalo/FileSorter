@@ -2,4 +2,4 @@
 .vscode
 main
 FileSorter
-./logs/*.log
+logs/*.log
